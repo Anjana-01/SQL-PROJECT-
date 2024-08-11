@@ -1,0 +1,270 @@
+create database Bank_loan_Report ;
+
+use Bank_loan_Report ;
+
+create table Loan_report(
+id INT PRIMARY key  ,
+address_state varchar(10) not null ,
+application_type varchar(20) not null,	
+emp_length varchar(15) not null ,	
+emp_title varchar(100) not null,
+grade varchar(5) not null,
+home_ownership varchar(15) not null ,
+issue_date varchar(50)  not null ,
+last_credit_pull_date varchar(50)  not null,	
+last_payment_date varchar(50)  not null ,	
+loan_status varchar(20) not null,
+next_payment_date varchar(50) not null,
+member_id int  not null,
+purpose varchar(18) not null,	
+sub_grade varchar(10) not null,
+term varchar(20) not null ,
+verification_status varchar(20) not null,
+annual_income VARCHAR(50)  not null ,
+dti decimal(20 , 5) not null,
+installment decimal(20 , 5) not null,
+int_rate decimal(20,5) not null ,
+loan_amount int  not null	,
+total_acc int  not null	,
+total_payment int  not null 
+);
+
+load data infile 
+"D:/loan_REPORT.csv"
+into table Loan_report
+fields terminated by ','
+enclosed by '"'
+lines terminated by '\n'
+ignore 1 rows ;
+
+select * from Loan_report;
+DROP TABLE LOAN_REPORT ;
+
+ALTER TABLE Loan_report
+ADD COLUMN issue_date_NEW DATE AFTER issue_date;
+
+UPDATE Loan_report 
+SET issue_date_NEW = str_to_date(issue_date, '%d-%m-%y');
+
+set @@session.sql_mode = 'allow_invalid_dates' ;
+
+ALTER TABLE Loan_report
+ADD COLUMN last_credit_pull_date_NEW DATE AFTER last_credit_pull_date;
+
+set @@session.sql_mode = 'allow_invalid_dates' ; 
+
+UPDATE Loan_report 
+SET last_credit_pull_date_NEW = str_to_date(last_credit_pull_date, '%m-%d-%y');
+
+ALTER TABLE Loan_report
+ADD COLUMN LAST_PAYMENT_DATE_NEW DATE AFTER LAST_PAYMENT_DATE ;
+
+UPDATE Loan_report 
+SET LAST_PAYMENT_DATE_NEW = str_to_date(LAST_PAYMENT_DATE, '%m-%d-%y');
+
+ALTER TABLE Loan_report
+ADD COLUMN NEXT_PAYMENT_DATE_NEW DATE AFTER NEXT_PAYMENT_DATE ;
+
+UPDATE Loan_report 
+SET NEXT_PAYMENT_DATE_NEW = str_to_date(NEXT_PAYMENT_DATE, '%m-%d-%y');
+
+select * from Loan_report;
+
+SELECT COUNT(ID ) AS TOTAL_LOAN_APPLICATION FROM LOAN_REPORT;
+
+SELECT COUNT(ID) AS MTD FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+SELECT COUNT(ID) AS PMTD FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 11;
+
+/* MoM = (MTD -PMTD)/PMTD) */
+
+SELECT SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT FROM LOAN_REPORT ;
+
+SELECT SUM(LOAN_AMOUNT) AS MTD_TOTAL_FUNDED_AMOUNT FROM LOAN_REPORT
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+
+SELECT SUM(LOAN_AMOUNT) AS PMTD_TOTAL_FUNDED_AMOUNT FROM LOAN_REPORT
+WHERE MONTH(ISSUE_DATE_NEW) = 11 ;
+
+SELECT SUM(TOTAL_PAYMENT) AS TOTAL_AMOUNT_RECEIVED FROM LOAN_REPORT ;
+
+SELECT SUM(TOTAL_PAYMENT) AS TOTAL_AMOUNT_RECEIVED FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+SELECT SUM(TOTAL_PAYMENT) AS PMTD_TOTAL_AMOUNT_RECEVIED FROM LOAN_REPORT
+WHERE MONTH(ISSUE_DATE_NEW) = 11 ;
+
+SELECT AVG(INT_RATE) AS AVERAGE_INTEREST_RATE FROM LOAN_REPORT ; 
+
+SELECT AVG(INT_RATE) * 100  AS AVERAGE_INTEREST_RATE FROM LOAN_REPORT ; 
+
+/* ROUND FUNCTION WE USE TO GET IN PARTICULAR DIGIT */
+SELECT ROUND(AVG(INT_RATE),4) * 100  AS AVERAGE_INTEREST_RATE FROM LOAN_REPORT ; 
+
+SELECT AVG(INT_RATE) AS MTD_AVERAGE_INTEREST_RATE FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+SELECT AVG(INT_RATE) * 100 AS MTD_AVERAGE_INTEREST_RATE FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+SELECT AVG(INT_RATE) AS PMTD_AVERAGE_INTEREST_RATE FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 11 ;
+
+SELECT AVG(INT_RATE) * 100 AS MTD_AVERAGE_INTEREST_RATE FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 11 ;
+
+SELECT AVG(DTI) * 100 AS AVERAGE_DTI FROM LOAN_REPORT ;
+
+
+SELECT AVG(DTI)  AS AVERAGE_DTI FROM LOAN_REPORT ;
+
+SELECT AVG(DTI)  AS MTD_AVERAGE_DTI FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 12 ;
+
+SELECT AVG(DTI)  AS PMTD_AVERAGE_DTI FROM LOAN_REPORT 
+WHERE MONTH(ISSUE_DATE_NEW) = 11;
+
+ SELECT (COUNT(CASE WHEN loan_status ="Fully Paid" OR loan_status = "Current" THEN ID END )* 100) 
+ / count(id) as good_loan_percentage 
+ from loan_report ;
+
+
+select
+(count(case when loan_status = "fully paid" or loan_status = "current" then id end)) 
+as Total_good_loan_application 
+from loan_report ;
+                                      /* OR*/
+select count(id) as  Total_good_loan_application  from loan_report 
+where loan_status = "fully paid" or loan_status = "current" ;						
+
+select (sum(case when loan_status = "fully paid" or loan_status = "current" then loan_amount end ))
+as total_good_loan_funded_amount from loan_report ;
+				                      /* OR */
+select sum(loan_amount) as total_good_loan_funded_amount from loan_report 
+where loan_status = "fully paid" or loan_status ="current" ;
+
+select sum(total_payment) as total_good_loan_received_amount from loan_report 
+where loan_status = "fully paid" or loan_status ="current" ;
+						/*OR*/ 
+select(sum(case when loan_status ="fully paid" or loan_status ="current" then total_payment end ))
+as total_good_loan_received_amount from loan_report ;
+
+select (count(case when loan_status = "Charged Off" then id end) *100) / count(id) as Total_bad_loan_percentage from loan_report ;
+                                               
+select count(id) as total_bad_loan_application from loan_report where loan_status = "charged off" ;
+                                        /* OR*/
+select (count(case when loan_status = "charged off" then id end )) as Total_bad_loan_application from loan_report ;
+
+select (sum(case when loan_status = "Charged Off" then loan_amount end)) as Total_bad_loan_funded_amount from loan_report ;
+                                     /* OR*/ 
+select sum(loan_amount) as Total_bad_loan_funded_amount from loan_report where loan_status = "charged off" ;
+
+select (sum(case when loan_status = "Charged Off" then Total_payment end)) as Total_bad_loan_received_amount from loan_report ;
+                                     /* OR*/ 
+select sum(total_payment) as Total_bad_loan_received_amount from loan_report where loan_status = "charged off" ;
+
+
+
+/* LOAN STATUS  ---------*/
+
+select 
+loan_status ,
+count(id) as total_applicatiom ,
+sum(loan_amount) as total_funded_amount,
+sum(total_payment) as total_recevied_amount ,
+avg(int_rate) as average_interest_rate,
+avg(dti * 100) as DTI
+from loan_report 
+group by loan_status ;
+
+select 
+loan_status ,
+sum(loan_amount) as MTD_total_funded_amount,
+sum(total_payment) as MTD_total_recevied_amount 
+from loan_report 
+where month(issue_date_new) = 12
+group by loan_status ;
+
+
+/* MONTHLY TREND BY ISSUE DATE -------------*/
+
+select 
+MONTH(issue_date_new) AS month_number,
+monthname(issue_date_new) as month_name,
+count(id) as total_loan_applications,
+sum(loan_amount) as total_funded_amount,
+sum(total_payment) as total_received_amount
+from loan_report 
+group by month(issue_date_new) , monthname(issue_date_new)
+order by month(issue_date_new) ;
+
+/* REGIONAL ANALYSIS BY STATE ------------*/
+
+SELECT 
+ADDRESS_STATE AS STATE ,
+COUNT(ID) AS TOTAL_LOAN_APPLICATION ,
+SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT,
+SUM(TOTAL_PAYMENT) AS TOTAL_RECEIVED_AMOUNT
+FROM LOAN_REPORT
+GROUP BY ADDRESS_STATE 
+ORDER BY ADDRESS_STATE ;
+
+/* LOAN TERM ANALYSIS ---------*/ 
+
+select 
+term as loan_term ,
+COUNT(ID) AS TOTAL_LOAN_APPLICATION ,
+SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT,
+SUM(TOTAL_PAYMENT) AS TOTAL_RECEIVED_AMOUNT
+FROM LOAN_REPORT
+group by term
+order by term ;
+
+
+/* EMPLOYEE LENGTH ANALSIS -----*/
+
+select 
+emp_length as employment_length ,
+COUNT(ID) AS TOTAL_LOAN_APPLICATION ,
+SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT,
+SUM(TOTAL_PAYMENT) AS TOTAL_RECEIVED_AMOUNT
+FROM LOAN_REPORT
+group by emp_length
+order by emp_length ;
+
+/* PURPOSE ------*/
+
+select 
+purpose as purpose_of_loan ,
+COUNT(ID) AS TOTAL_LOAN_APPLICATION ,
+SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT,
+SUM(TOTAL_PAYMENT) AS TOTAL_RECEIVED_AMOUNT
+FROM LOAN_REPORT
+group by purpose
+order by purpose ;
+
+SELECT 
+	purpose AS PURPOSE, 
+	COUNT(id) AS Total_Loan_Applications,
+	SUM(loan_amount) AS Total_Funded_Amount,
+	SUM(total_payment) AS Total_Amount_Received
+FROM loan_report
+WHERE grade = 'A'
+GROUP BY purpose
+ORDER BY purpose;
+
+
+/* HOMEOWERSHIP ------*/
+
+select 
+home_ownership as home_ownership ,
+COUNT(ID) AS TOTAL_LOAN_APPLICATION ,
+SUM(LOAN_AMOUNT) AS TOTAL_FUNDED_AMOUNT,
+SUM(TOTAL_PAYMENT) AS TOTAL_RECEIVED_AMOUNT
+FROM LOAN_REPORT
+group by home_ownership
+order by home_ownership ;
+
